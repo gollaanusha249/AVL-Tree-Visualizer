@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AVL Tree Visualizer</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        svg { border: 1px solid black; display: block; margin: 20px auto; }
+        .controls { margin-bottom: 20px; }
+        button {
+    padding: 10px 15px;
+    border: none;
+    border-radius: 5px;
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+    margin: 5px;
+}
+button:hover { opacity: 0.8; }
+.insert-btn { background-color: #28a745; } /* Green */
+.delete-btn { background-color: #dc3545; } /* Red */
+.search-btn { background-color: #007bff; } /* Blue */
+button:hover {
+    opacity: 0.9;
+    transform: scale(1.05);
+    transition: transform 0.2s ease-in-out;
+}
+input {
+    padding: 10px;
+    font-size: 16px;
+    border: 2px solid #ccc;
+    border-radius: 5px;
+    outline: none;
+    transition: border-color 0.3s ease;
+}
+input:focus {
+    border-color: #007bff;
+}
+
+
+circle {
+    fill: lightblue;
+    stroke: black;
+    stroke-width: 2px;
+    transition: fill 0.3s ease;
+}
+circle:hover {
+    fill: #007bff;
+}
+text {
+    font-weight: bold;
+    fill: black;
+}
+
+.controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+svg {
+    border-radius: 10px;
+    box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+    </style>
+</head>
+<body>
+    <h1>AVL Tree Visualizer</h1>
+    
+    <div class="controls">
+        <input type="number" id="value" placeholder="Enter value">
+        <!-- <button onclick="insertNode()">Insert</button>
+        <button onclick="deleteNode()">Delete</button>
+        <button onclick="searchNode()">Search</button> -->
+        <button class="insert-btn" onclick="insertNode()">Insert</button>
+        <button class="delete-btn" onclick="deleteNode()">Delete</button>
+        <button class="search-btn" onclick="searchNode()">Search</button>
+
+    </div>
+    <svg width="800" height="500"></svg>
+    
+    <script>
+        class AVLNode {
+            constructor(value) {
+                this.value = value;
+                this.left = null;
+                this.right = null;
+                this.height = 1;
+            }
+        }
+
+        class AVLTree {
+            constructor() {
+                this.root = null;
+            }
+
+            insert(value) {
+                if (!this.search(value)) {
+                    this.root = this._insert(this.root, value);
+                }
+            }
+
+            _insert(node, value) {
+                if (!node) return new AVLNode(value);
+
+                if (value < node.value) node.left = this._insert(node.left, value);
+                else if (value > node.value) node.right = this._insert(node.right, value);
+                else return node; // Prevent duplicates
+
+                node.height = 1 + Math.max(this._getHeight(node.left), this._getHeight(node.right));
+                return this._balance(node);
+            }
+
+            delete(value) {
+                this.root = this._delete(this.root, value);
+            }
+
+            _delete(node, value) {
+                if (!node) return node;
+
+                if (value < node.value) node.left = this._delete(node.left, value);
+                else if (value > node.value) node.right = this._delete(node.right, value);
+                else {
+                    if (!node.left || !node.right) {
+                        node = node.left || node.right;
+                    } else {
+                        let temp = this._minValueNode(node.right);
+                        node.value = temp.value;
+                        node.right = this._delete(node.right, temp.value);
+                    }
+                }
+
+                if (!node) return node;
+                node.height = 1 + Math.max(this._getHeight(node.left), this._getHeight(node.right));
+                return this._balance(node);
+            }
+
+            _minValueNode(node) {
+                while (node.left) node = node.left;
+                return node;
+            }
+
+            search(value) {
+                return this._search(this.root, value);
+            }
+
+            _search(node, value) {
+                if (!node) return false;
+                if (value === node.value) return true;
+                return value < node.value ? this._search(node.left, value) : this._search(node.right, value);
+            }
+
+            _getHeight(node) {
+                return node ? node.height : 0;
+            }
+
+            _getBalance(node) {
+                return node ? this._getHeight(node.left) - this._getHeight(node.right) : 0;
+            }
+
+            _balance(node) {
+                let balance = this._getBalance(node);
+                if (balance > 1) {
+                    if (this._getBalance(node.left) < 0) node.left = this._rotateLeft(node.left);
+                    return this._rotateRight(node);
+                }
+                if (balance < -1) {
+                    if (this._getBalance(node.right) > 0) node.right = this._rotateRight(node.right);
+                    return this._rotateLeft(node);
+                }
+                return node;
+            }
+
+            _rotateLeft(z) {
+                let y = z.right;
+                z.right = y.left;
+                y.left = z;
+                z.height = 1 + Math.max(this._getHeight(z.left), this._getHeight(z.right));
+                y.height = 1 + Math.max(this._getHeight(y.left), this._getHeight(y.right));
+                return y;
+            }
+
+            _rotateRight(z) {
+                let y = z.left;
+                z.left = y.right;
+                y.right = z;
+                z.height = 1 + Math.max(this._getHeight(z.left), this._getHeight(z.right));
+                y.height = 1 + Math.max(this._getHeight(y.left), this._getHeight(y.right));
+                return y;
+            }
+        }
+
+        let tree = new AVLTree();
+
+        function insertNode() {
+            let value = parseInt(document.getElementById("value").value);
+            if (!isNaN(value)) {
+                tree.insert(value);
+                drawTree();
+            }
+        }
+
+        function deleteNode() {
+            let value = parseInt(document.getElementById("value").value);
+            if (!isNaN(value)) {
+                tree.delete(value);
+                drawTree();
+            }
+        }
+
+        function searchNode() {
+            let value = parseInt(document.getElementById("value").value);
+            if (!isNaN(value)) {
+                alert(tree.search(value) ? "Value found!" : "Value not found!");
+            }
+        }
+
+        function drawTree() {
+            d3.select("svg").selectAll("*").remove();
+            let root = tree.root;
+            if (root) drawNode(root, 400, 50, 200);
+        }
+
+        function drawNode(node, x, y, offset) {
+            if (!node) return;
+            let svg = d3.select("svg");
+
+            if (node.left) {
+                svg.append("line").attr("x1", x).attr("y1", y)
+                   .attr("x2", x - offset).attr("y2", y + 60)
+                   .attr("stroke", "black");
+                drawNode(node.left, x - offset, y + 60, offset / 2);
+            }
+            if (node.right) {
+                svg.append("line").attr("x1", x).attr("y1", y)
+                   .attr("x2", x + offset).attr("y2", y + 60)
+                   .attr("stroke", "black");
+                drawNode(node.right, x + offset, y + 60, offset / 2);
+            }
+
+            svg.append("circle").attr("cx", x).attr("cy", y).attr("r", 20)
+               .attr("fill", "lightblue").attr("stroke", "black");
+            svg.append("text").attr("x", x).attr("y", y + 5)
+               .attr("text-anchor", "middle").attr("font-size", "14px")
+               .text(node.value);
+        }
+    </script>
+</body>
+</html>
